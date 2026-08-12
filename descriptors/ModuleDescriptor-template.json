@@ -131,6 +131,16 @@
         },
         {
           "methods": [
+            "POST"
+          ],
+          "pathPattern": "/data-export-spring/configs/{id}/execute",
+          "permissionsRequired": [
+            "data-export.config.item.execute"
+          ],
+          "modulePermissions": []
+        },
+        {
+          "methods": [
             "GET"
           ],
           "pathPattern": "/data-export-spring/configs",
@@ -344,6 +354,11 @@
       "description": "Change a data export configuration"
     },
     {
+      "permissionName": "data-export.config.item.execute",
+      "displayName": "Run a data export configuration",
+      "description": "Run a data export configuration for the given records"
+    },
+    {
       "permissionName": "data-export.config.item.delete",
       "displayName": "Delete data export configuration by id",
       "description": "Delete data export configuration by id"
@@ -378,7 +393,8 @@
         "data-export.config.item.get",
         "data-export.config.item.post",
         "data-export.config.item.put",
-        "data-export.config.item.delete"
+        "data-export.config.item.delete",
+        "data-export.config.item.execute"
       ]
     },
     {
