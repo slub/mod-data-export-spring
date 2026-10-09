@@ -76,7 +76,7 @@ public class ConfigsController implements ConfigsApi {
     var exportConfig = manager.getConfigById(exportConfigId);
     var ediConfig = getExecutableEdiConfig(exportConfig);
     ediConfig.setPoLineIds(executeRequest.getPoLineIds());
-    var job = jobService.upsertAndSendToKafka(createJob(exportConfig), true);
+    var job = jobService.upsertAndSendManualExecutionToKafka(createJob(exportConfig));
     log.info("executeExportConfig:: configuration {} executed as jobId={}.", exportConfigId, job.getId());
     return new ResponseEntity<>(new ExportConfigExecuteResponse().jobId(String.valueOf(job.getId())), HttpStatus.CREATED);
   }

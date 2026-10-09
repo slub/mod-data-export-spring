@@ -35,6 +35,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.http.MediaType;
@@ -384,6 +385,9 @@ class ConfigsControllerTest extends BaseTest {
         jsonPath("$.source", is("diku_admin")),
         jsonPath("$.exportTypeSpecificParameters.vendorEdiOrdersExportConfig.poLineIds",
           contains(PO_LINE_ID_1, PO_LINE_ID_2)));
+
+    // only this endpoint flags the job command as a manual execution for the worker
+    assertThat(pollJobCommandRawJson(jobId)).contains("\"manualExecution\"");
   }
 
   @Test
@@ -416,9 +420,10 @@ class ConfigsControllerTest extends BaseTest {
         jsonPath("$.errors[0].message", startsWith("NotFoundException")));
   }
 
-  @Test
+  @ParameterizedTest
+  @ValueSource(strings = {"{}", "{\"poLineIds\":[]}"})
   @DisplayName("Should not run a config without po line ids")
-  void shouldNotRunConfigWithoutPoLineIds() throws Exception {
+  void shouldNotRunConfigWithoutPoLineIds(String executeRequest) throws Exception {
     saveConfig(EDIFACT_CONFIG_REQUEST);
 
     mockMvc
@@ -426,7 +431,7 @@ class ConfigsControllerTest extends BaseTest {
         post("/data-export-spring/configs/" + EDIFACT_CONFIG_ID + "/execute")
           .contentType(MediaType.APPLICATION_JSON_VALUE)
           .headers(defaultHeaders())
-          .content("{\"poLineIds\":[]}"))
+          .content(executeRequest))
       .andExpectAll(status().isBadRequest());
   }
 
@@ -438,6 +443,16 @@ class ConfigsControllerTest extends BaseTest {
         .filter(event -> event.getType() == type)
         .findFirst()
         .orElseThrow(() -> new AssertionError("Expected " + type + " event for config " + configId));
+    }
+  }
+
+  private String pollJobCommandRawJson(String jobId) {
+    var topic = kafkaService.getTenantTopicName(Topic.JOB_COMMAND.getTopicName(), TENANT);
+    try (var consumer = TestKafkaConsumer.subscribe(topic, kafkaProperties)) {
+      return consumer.poll(jobId).stream()
+        .map(ConsumerRecord::value)
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("Expected job command for job " + jobId));
     }
   }
 
